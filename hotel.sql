@@ -24,7 +24,7 @@ DROP TABLE TRF_CHB CASCADE CONSTRAINTS;
 /* Table : AGENT_ENTRETIEN                                     				 */
 /*==============================================================*/
 create table AGENT_ENTRETIEN  (
-   AGT_ID           INTEGER 
+   AGT_ID           CHAR(3) 
 		CONSTRAINT pk_agt PRIMARY KEY ,
    AGT_NOM          VARCHAR2(25),
    AGT_PRENOM       VARCHAR2(15),
@@ -54,9 +54,10 @@ create table CHAMBRE  (
    CHB_DOUCHE           SMALLINT,
    CHB_WC               SMALLINT
         CONSTRAINT chk_CHB_WC CHECK (CHB_WC IN (0,1)),
-   CHB_POSTE_TEL        CHAR(3)
-        CONSTRAINT chk_CHB_WC CHECK (SUBSTR(CHB_POSTE_TEL, 1, CHAR_LENGTH(CHB_POSTE_TEL) - 1) = CONVERT(char(2),CHB_ID)),
-   CHB_COUCHAGE         SMALLINT
+   CHB_POSTE_TEL        CHAR(3),
+   CHB_COUCHAGE         SMALLINT,
+   --CONSTRAINT POSTE_TEL_CHECK  CHECK (SUBSTR(CHB_POSTE_TEL, 1, CHAR_LENGTH(CHB_POSTE_TEL) - 1) = CONVERT(char(2),CHB_ID))
+   CONSTRAINT POSTE_TEL_CHECK CHECK (SUBSTR(CHB_POSTE_TEL, 2) = CHB_ID)
 )
 /
 
