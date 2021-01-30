@@ -43,8 +43,10 @@ create table AGENT_ENTRETIEN  (
 create table CHAMBRE  (
    CHB_ID               INTEGER
         CONSTRAINT PK_CHAMBRE primary key,
-   CHB_COMMUNIQUE       INTEGER,
-   AGT_ID				CHAR(3),
+   CHB_COMMUNIQUE       INTEGER
+        constraint FK_CHAMBRE_CHB_COMMUNIQUE references CHAMBRE (CHB_ID),
+   AGT_ID				CHAR(3)
+        constraint FK_CHAMBRE_AGT_ID references AGENT_ENTRETIEN (AGT_ID),
    CHB_NUMERO           SMALLINT
         CONSTRAINT chk_CHB_NUMERO CHECK (CHB_NUMERO != 13 ),
    CHB_ETAGE            CHAR(3)
@@ -210,7 +212,6 @@ create table TRF_CHB  (
         CONSTRAINT FK_TRF_CHB_CHAMBRE references CHAMBRE (CHB_ID),
    TRF_DATE_DEBUT       DATE                             not null,
    TRF_CHB_PRIX         NUMBER(8,2)
-      --CONSTRAINT PK_TRF_CHB primary key (CHB_ID, TRF_DATE_DEBUT)
 )
 /
 

@@ -1,10 +1,10 @@
 --Exercice 2
 
 --1)
-DELETE FROM AGENT_ENTRETIEN ;
 DELETE FROM TRF_CHB ;
 DELETE FROM PLANNING ;
 DELETE FROM CHAMBRE ;
+DELETE FROM AGENT_ENTRETIEN ;
 DELETE FROM TELEPHONE ;
 DELETE FROM TYPE ;
 DELETE FROM EMAIL ;
@@ -197,25 +197,20 @@ DROP TABLE TARIF CASCADE CONSTRAINTS;
 /*==============================================================*/
 /* Table : TARIF                                              					*/
 /*==============================================================*/
--- la contrainte PK_TRF_CHB de la table TRF_CHB ne peut pas etre définie car  TRF_DATE_DEBUT  est clé primaire de la table  Tarif qui n'as pas encore été définie 
-create table TARIF  (
-   TRF_DATE_DEBUT       DATE                          not null
-        CONSTRAINT PK_TARIF references TRF_CHB (TRF_DATE_DEBUT),
-   TRF_TAUX_TAXES       NUMBER                             not null,
-   TRF_PETIT_DEJ          NUMBER(8,2)
-      --CONSTRAINT PK_TRF_CHB primary key (CHB_ID, TRF_DATE_DEBUT)
+create table TARIF AS (
+    SELECT TRF_DATE_DEBUT, TRF_TAUX_TAXES,TRF_PETIT_DEJ
+    FROM HOTEL.TARIF
+    WHERE EXTRACT(YEAR FROM TRF_DATE_DEBUT) > 2004
 )
 /
 
 -- Suppression des données de la table Tarif
-DELETE FROM TARIF ;
+--DELETE FROM TARIF ;
 
--- Insertion des données
-INSERT INTO TARIF (TRF_DATE_DEBUT, TRF_TAUX_TAXES, TRF_PETIT_DEJ)
-SELECT TRF_DATE_DEBUT, TRF_TAUX_TAXES, TRF_PETIT_DEJ
-FROM HOTEL.TARIF
-WHERE EXTRACT(YEAR FROM TRF_DATE_DEBUT) >= 2004;
+--AJout de la clé primaire
+ALTER TABLE TARIF ADD CONSTRAINT PK_TARIF PRIMARY KEY (TRF_DATE_DEBUT);
 
 --Insertion des contraintes sur TRF_DATE_DEBUT dans la table TRF_CHB
 ALTER TABLE TRF_CHB ADD CONSTRAINT FK_TRF_CHB_TARIF FOREIGN KEY (TRF_DATE_DEBUT) references TARIF (TRF_DATE_DEBUT) ON DELETE CASCADE;
-ALTER TABLE TRF_CHB ADD CONSTRAINT PK_TRF_CHB PRIMARY KEY (CHB_ID,TRF_DATE_DEBUT);
+
+--ALTER TABLE TRF_CHB ADD CONSTRAINT PK_TRF_CHB PRIMARY KEY (CHB_ID,TRF_DATE_DEBUT);
