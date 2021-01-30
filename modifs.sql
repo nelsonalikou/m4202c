@@ -74,3 +74,40 @@ CREATE INDEX  i_cli_nom  ON CLIENT (CLI_NOM ASC);
 CREATE INDEX  i_fac_date_cli_id  ON FACTURE (FAC_DATE DESC, CLI_ID ASC);
 
 --Exercice 5
+
+--1) Assignement des privilèges en public pour la table client
+GRANT SELECT ON CLIENT TO PUBLIC ;
+
+--test exemple
+--SELECT * FROM alik002.client;
+
+
+--2)
+--privilège insertion à vann0012
+GRANT INSERT ON CLIENT TO vann0012;
+
+--privilège modification à vann0012 sur le champ nbpers
+GRANT UPDATE(NB_PERS) ON PLANNING TO vann0012;
+
+--privilège modification de la table CLIENT sauf le champ cli_id à vann0012
+GRANT UPDATE(TIT_CODE ,CLI_NOM ,CLI_PRENOM ,CLI_ENSEIGNE) ON CLIENT TO vann0012;
+
+--Privilège de lecture de la table CLIENT en cascade à vann0012
+GRANT SELECT ON CLIENT TO vann0012 WITH GRANT OPTION;
+
+
+--Reprise des privilèges
+REVOKE ALL PRIVILEGES  ON CLIENT FROM PUBLIC ;
+REVOKE ALL PRIVILEGES  ON PLANNING FROM PUBLIC ;
+
+--3)
+CREATE ROLE RO_HOTEL_alik0002;
+    GRANT UPDATE(agt_id) ON CHAMBRE TO RO_HOTEL_alik0002;
+    GRANT SELECT, INSERT, UPDATE ON PLANNING TO RO_HOTEL_alik0002;
+    GRANT SELECT, INSERT, UPDATE ON TARIF TO RO_HOTEL_alik0002;
+    
+--4)
+GRANT RO_HOTEL_alik0002 TO vann0012,zerm0002;
+
+--5) suppression du role
+DROP ROLE RO_HOTEL_alik0002;
