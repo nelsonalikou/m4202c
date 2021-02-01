@@ -91,9 +91,34 @@ BEGIN
     DELETE FROM ligne_facture WHERE fac_id = :old.fac_id;
     dbms_output.put_line ('Suppression effectuée');
 END;
+/
+
+--Exercice 2
+--1)
+--Ajout contrainte check
+ALTER TABLE CHAMBRE ADD CONSTRAINT VERIF_CHB_COUCHAGE CHECK (CHB_COUCHAGE BETWEEN 1 AND 5);
+--insertion
+INSERT INTO CHAMBRE (CHB_ID, CHB_NUMERO, CHB_ETAGE, CHB_COUCHAGE) 
+VALUES(30,29,'RDC', 6);
 
 
 
+--2)
+--Création du déclencheur TR_couchage
+CREATE OR REPLACE TRIGGER TR_Couchage
+BEFORE INSERT ON CHAMBRE
+FOR EACH ROW
+WHEN(new.CHB_COUCHAGE < 1 OR new.CHB_COUCHAGE > 5)
+BEGIN
+    INSERT INTO CHAMBRE (CHB_ID, CHB_NUMERO, CHB_ETAGE, CHB_COUCHAGE)
+    VALUES(:new.CHB_ID, :new.CHB_NUMERO, :new.CHB_ETAGE,2);
+    dbms_output.put_line ('Insertion effectuée');
+END;
+/
+
+--Suppression de la contarinte VERIF_CHB_COUCHAGE
+ALTER TABLE CHAMBRE 
+DROP CONSTRAINT VERIF_CHB_COUCHAGE;
 
 
 
