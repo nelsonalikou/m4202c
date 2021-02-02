@@ -108,10 +108,9 @@ VALUES(30,29,'RDC', 6);
 CREATE OR REPLACE TRIGGER TR_Couchage
 BEFORE INSERT ON CHAMBRE
 FOR EACH ROW
-WHEN(new.CHB_COUCHAGE < 1 OR new.CHB_COUCHAGE > 5)
+WHEN((new.chb_couchage not  between 1 and 5) OR (new.chb_couchage IS NULL))
 BEGIN
-    INSERT INTO CHAMBRE (CHB_ID, CHB_NUMERO, CHB_ETAGE, CHB_COUCHAGE)
-    VALUES(:new.CHB_ID, :new.CHB_NUMERO, :new.CHB_ETAGE,2);
+    :new.CHB_COUCHAGE := 2;
     dbms_output.put_line ('Insertion effectuée');
 END;
 /
@@ -129,11 +128,10 @@ CREATE OR REPLACE TRIGGER TR_planning
 BEFORE INSERT OR UPDATE ON PLANNING
 FOR EACH ROW
 BEGIN
-    IF((PLN_JOUR IS NULL) OR (PLN_JOUR < SYSDATE))
-        THEN INSERT INTO PLANNING(CHB_ID, PLN_JOUR, CLI_ID, NB_PERS)
-             VALUES(:new.CHB_ID, SYSDATE, :new.CLI_ID, NB_PERS);
+    IF((:new.PLN_JOUR IS NULL) OR (:new.PLN_JOUR < SYSDATE))
+        THEN :new.PLN_JOUR := SYSDATE;
     END IF;
-    dbms_output.put_line ('Insertion effectuée');
+    dbms_output.put_line ('Réservation Enregistrée');
 END;
 /
 
@@ -143,3 +141,18 @@ VALUES(1, TO_DATE('01/01/2020', 'DD/MM/YYYY'), 100, 2);
 
 INSERT INTO PLANNING(CHB_ID, PLN_JOUR, CLI_ID, NB_PERS)
 VALUES(2,null ,100, 2);
+
+
+--Requete d'affichage pour vérification du déclencheur
+SELECT CHB_ID as "Reservation", pln_jour as "Jour réservation"
+FROM PLANNING
+WHERE CLI_ID = 100
+ORDER BY pln_jour DESC;
+
+
+--3)
+INSERT INTO PLANNING(CHB_ID, PLN_JOUR, CLI_ID, NB_PERS)
+VALUES(15, null, 100, 15);
+
+INSERT INTO PLANNING(CHB_ID, PLN_JOUR, CLI_ID, NB_PERS)
+VALUES(15, null, 100, 2);
