@@ -3,17 +3,16 @@
 SET SERVEROUTPUT ON;
 
 --1) Requete de sélection
-SELECT l.LIF_ID LIF_ID,
-l.FAC_ID FAC_ID,
-l.QTE QTE,
-l.REMISE_POURCENT REMISE_POURCENT,
+SELECT l.LIF_ID "Ligne facture",
+l.FAC_ID "Facture N°",
+l.QTE "Quantité",
+l.REMISE_POURCENT "Remise ne pourcent",
 l.REMISE_MNT REMISE_MNT,
-l.MNT MNT,
-l.TAUX_TVA TAUX_TVA
+l.MNT "Montant",
+l.TAUX_TVA "Taux TVA"
 FROM ligne_facture l JOIN facture f ON (l.fac_id = f.fac_id)
-                    JOIN mode_paiement m ON (f.pmt_code = m.pmt_code)
                     JOIN adresse a ON (f.adr_id = a.adr_id)
-WHERE UPPER(m.pmt_lib) = 'CHEQUE'
+WHERE UPPER(f.pmt_code) = 'CHQ'
 AND a.adr_cp LIKE '02%';
 
 --2)
