@@ -127,11 +127,21 @@ DROP CONSTRAINT VERIF_CHB_COUCHAGE;
 CREATE OR REPLACE TRIGGER TR_planning 
 BEFORE INSERT OR UPDATE ON PLANNING
 FOR EACH ROW
+
+DECLARE c_chb_couchage   chambre.chb_couchage%TYPE;
+
 BEGIN
+    --recuperation du nombre de couchage de la chambre dont l'id corespond à celui que l'on s'apprete à inserer.
+    SELECT chb_couchage INTO c_chb_couchage FROM CHAMBRE WHERE CHB_ID = :new.CHB_ID;
+    
     IF((:new.PLN_JOUR IS NULL) OR (:new.PLN_JOUR < SYSDATE))
         THEN :new.PLN_JOUR := SYSDATE;
     END IF;
-    dbms_output.put_line ('Réservation Enregistrée');
+    IF(:new.nb_pers < c_chb_couchage)
+        THEN dbms_output.put_line ('Réservation Enregistrée');
+        ELSE RAISE_APPLICATION_ERROR (-20011, 'Refusé '|| :new.nb_pers || ' incorrect car supérieur  à ' || c_chb_couchage) ;
+    END IF;
+    
 END;
 /
 
@@ -151,8 +161,12 @@ ORDER BY pln_jour DESC;
 
 
 --3)
-INSERT INTO PLANNING(CHB_ID, PLN_JOUR, CLI_ID, NB_PERS)
-VALUES(15, null, 100, 15);
+--rejeté
+INSERT INTO PLANNING(CHB_ID,CLI_ID, NB_PERS)
+VALUES(15,100, 15);
 
-INSERT INTO PLANNING(CHB_ID, PLN_JOUR, CLI_ID, NB_PERS)
-VALUES(15, null, 100, 2);
+--accepté
+INSERT INTO PLANNING(CHB_ID, CLI_ID, NB_PERS)
+VALUES(15, 100, 2);
+
+
