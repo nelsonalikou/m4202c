@@ -1,5 +1,7 @@
 --Exercice 1
 
+SET SERVEROUTPUT ON;
+
 --1) Requete de sélection
 SELECT l.LIF_ID LIF_ID,
 l.FAC_ID FAC_ID,
@@ -89,7 +91,7 @@ BEGIN
     --récupération de la ligne de facture liée à la facture à supprimer
     INSERT INTO old_fact(FAC_ID ,PMT_CODE ,CLI_ID ,ADR_ID ,FAC_DATE ,FAC_DAT_PMT) VALUES(:old.FAC_ID ,:old.PMT_CODE ,:old.CLI_ID ,:old.ADR_ID ,:old.FAC_DATE ,:old.FAC_DAT_PMT);
     DELETE FROM ligne_facture WHERE fac_id = :old.fac_id;
-    dbms_output.put_line ('Suppression effectuée');
+    --dbms_output.put_line ('Suppression effectuée');
 END;
 /
 
@@ -111,9 +113,11 @@ FOR EACH ROW
 WHEN((new.chb_couchage not  between 1 and 5) OR (new.chb_couchage IS NULL))
 BEGIN
     :new.CHB_COUCHAGE := 2;
-    dbms_output.put_line ('Insertion effectuée');
+    --dbms_output.put_line ('Insertion effectuée');
 END;
 /
+
+DROP TRIGGER TR_Couchage;
 
 --Suppression de la contarinte VERIF_CHB_COUCHAGE
 ALTER TABLE CHAMBRE 
@@ -145,6 +149,7 @@ BEGIN
 END;
 /
 
+DROP TRIGGER TR_planning;
 
 INSERT INTO PLANNING(CHB_ID, PLN_JOUR, CLI_ID, NB_PERS)
 VALUES(1, TO_DATE('01/01/2020', 'DD/MM/YYYY'), 100, 2);
@@ -168,5 +173,45 @@ VALUES(15,100, 15);
 --accepté
 INSERT INTO PLANNING(CHB_ID, CLI_ID, NB_PERS)
 VALUES(15, 100, 2);
+
+
+--Exercice 4
+
+--a) affichage des agents d'entretien qui sont des femmes.
+SELECT AGT_NOM, AGT_PRENOM, AGT_SALAIRE
+FROM agent_entretien
+WHERE agt_sx = 2;
+
+--b)
+CREATE OR REPLACE TRIGGER TR_Chambre
+BEFORE INSERT OR UPDATE ON CHAMBRE 
+FOR EACH ROW
+WHEN(new.chb_couchage > 3)
+
+DECLARE C_AGT_ID  chambre.AGT_ID%TYPE;
+BEGIN
+  :NEW.CHB_BAIN  := 1;
+  :NEW.CHB_DOUCHE := 1;
+  
+  UPDATE AGENT_ENTRETIEN 
+    SET AGT_SALAIRE = AGT_SALAIRE * 1.05 
+    WHERE AGT_ID = :new.AGT_ID
+    AND agt_sx = 2;
+    
+END;
+/
+
+DROP TRIGGER TR_Chambre;
+
+--insertions
+INSERT INTO CHAMBRE(CHB_ID, CHB_NUMERO, CHB_COUCHAGE, AGT_ID )
+VALUES(21, 22, 5, 'A03');
+
+INSERT INTO CHAMBRE(CHB_ID, CHB_NUMERO, CHB_COUCHAGE, AGT_ID )
+VALUES(22, 24, 5, 'A02');
+
+INSERT INTO CHAMBRE(CHB_ID, CHB_NUMERO, CHB_COUCHAGE, AGT_ID )
+VALUES(23, 24, 4, 'A02');
+
 
 
