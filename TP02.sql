@@ -133,7 +133,7 @@ BEGIN
     IF((:new.PLN_JOUR IS NULL) OR (:new.PLN_JOUR < SYSDATE))
         THEN :new.PLN_JOUR := TRUNC(SYSDATE);
     END IF;
-    IF(:new.nb_pers < c_chb_couchage)
+    IF(:new.nb_pers <= c_chb_couchage)
         THEN dbms_output.put_line ('Réservation Enregistrée');
         ELSE RAISE_APPLICATION_ERROR (-20011, 'Refusé '|| :new.nb_pers || ' incorrect car supérieur  à ' || c_chb_couchage) ;
     END IF;
