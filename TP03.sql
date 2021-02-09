@@ -37,15 +37,28 @@ INSERT INTO PLANNING (CHB_ID, PLN_JOUR, CLI_ID, NB_PERS) VALUES
 
 DECLARE 
 nb_chambres INTEGER;
-nom_agt AGENT_ENTRETIEN.AGT_NOM%TYPE;
-BEGIN 
+nom_agent AGENT_ENTRETIEN.AGT_NOM%TYPE;
+BEGIN
+    nom_agent := '&nom_agt';
+    
     --ACCEPT nom VARCHAR2(25) PROMPT 'Nom de l''agent:  ' ;
-    SELECT NVL2(COUNT(CHB_ID),0, COUNT(CHB_ID)) INTO nb_chambres  FROM CHAMBRE WHERE AGT_ID = (SELECT AGT_ID FROM AGENT_ENTRETIEN WHERE UPPER(AGT_NOM) = UPPER('&nom_agt'));
-    dbms_output.put_line ( nb_chambres );
+    SELECT NVL(COUNT(c.CHB_ID),0) INTO nb_chambres
+    FROM CHAMBRE c, AGENT_ENTRETIEN a  
+    WHERE c.AGT_ID(+) = a.AGT_ID 
+    AND UPPER(a.AGT_NOM) = UPPER(nom_agent);
+    
+    --Récupération du nom de l'agent
+    IF(nb_chambres = 0)
+        THEN dbms_output.put_line ( 'Aucune chambre pour l''agent ' || nom_agent );
+        ELSE dbms_output.put_line ( 'L''agent ' || nom_agent || ' s''occupe de ' || nb_chambres || ' chambres');
+    END IF;
 EXCEPTION
     WHEN NO_DATA_FOUND
-    THEN dbms_output.put_line ( 'Agent ' || nom_agt || ' inexistant' );
+    THEN dbms_output.put_line ( 'Agent ' || nom_agent || ' inexistant' );
 END;
 /
 
-
+SELECT NVL(COUNT(c.CHB_ID),0) as "nb chambres"
+    FROM CHAMBRE c, AGENT_ENTRETIEN a  
+    WHERE c.AGT_ID(+) = a.AGT_ID 
+    AND UPPER(a.AGT_NOM) = UPPER('DUSSE');  --FECHOL DUSSE  BEVIERE
