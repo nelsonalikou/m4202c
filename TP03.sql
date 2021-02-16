@@ -111,19 +111,27 @@ accept date_depart prompt 'Please enter the new departure date: ';
 DECLARE
     agt_cod AGENT_ENTRETIEN.AGT_ID%TYPE;
     date_dpt AGENT_ENTRETIEN.AGT_DPT%TYPE;
+    nom_agt AGENT_ENTRETIEN.AGT_NOM%TYPE;
   
 Begin
     
     agt_cod := '&agt_code';
     date_dpt := TO_DATE('&date_depart', 'DD/MM/YYYY');
     
+    
+    SELECT AGT_NOM
+    INTO nom_agt    
+    FROM AGENT_ENTRETIEN
+    WHERE AGT_ID = agt_cod;
+EXCEPTION
+    WHEN NO_DATA_FOUND
+    THEN dbms_output.put_line ( 'L''agent ' || agt_cod || ' n''existe pas' );
+    
     UPDATE AGENT_ENTRETIEN
     SET AGT_DPT = date_dpt
     WHERE AGT_ID = agt_cod;
     dbms_output.put_line('L''agent a été modifié');
-EXCEPTION
-    WHEN NO_DATA_FOUND
-    THEN dbms_output.put_line ( 'L''agent ' || agt_cod || ' n''existe pas' );
+
     WHEN OTHERS 
     THEN raise_application_error(-20020,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
 end;
@@ -135,3 +143,93 @@ end;
 --AGT_ID = A05 et AGT_DPT = 01/15/2021 : error ce n'est pas un mois valide 
 -- puis avec AGT_DPT 01/06/2021 - Success
 
+
+-- b)
+
+accept agt_code prompt 'Please enter the agt code ';
+
+accept date_depart prompt 'Please enter the new departure date: ';
+
+DECLARE
+    agt_cod AGENT_ENTRETIEN.AGT_ID%TYPE;
+    date_dpt AGENT_ENTRETIEN.AGT_DPT%TYPE;
+    nom_agt AGENT_ENTRETIEN.AGT_NOM%TYPE;
+    
+    --Prise en charge de l'erreur due à la contrainte verif_agt_dpt
+    e_verif_agt_dpt exception;
+    pragma exception_init(e_verif_agt_dpt, -6502);
+  
+Begin
+    
+    agt_cod := '&agt_code';
+    date_dpt := TO_DATE('&date_depart', 'DD/MM/YYYY');
+    
+    
+    SELECT AGT_NOM
+    INTO nom_agt    
+    FROM AGENT_ENTRETIEN
+    WHERE AGT_ID = agt_cod;
+
+    UPDATE AGENT_ENTRETIEN
+    SET AGT_DPT = date_dpt
+    WHERE AGT_ID = agt_cod;
+    IF (SQL%ROWCOUNT > 0)
+        THEN dbms_output.put_line('L''agent a été modifié');
+    ELSE dbms_output.put_line ( 'L''agent ' || agt_cod || ' n''existe pas' );
+    END IF;
+EXCEPTION
+    WHEN e_verif_agt_dpt
+    THEN dbms_output.put_line ( 'La date de départ de l’agent ne peut pas être inférieure à Sa date d’embauche.' );
+end;
+/
+
+
+-- Test
+--AGT_ID = A08 : error agent inexistant
+--AGT_ID = A05 et AGT_DPT = 01/15/2021 : error ce n'est pas un mois valide 
+-- puis avec AGT_DPT 01/06/2021 - Success
+
+
+--c) contrainte qui vérifie que la date de départ est bien supérieure à la date d’embauche
+ALTER TABLE AGENT_ENTRETIEN ADD CONSTRAINT verif_agt_dpt CHECK(AGT_DPT > AGT_EMB);
+
+--Test
+--AGT_ID = A05 et AGT_DPT = '20/10/1998' 
+--Résultat violation de la contrainte verif_agt_dpt
+
+
+
+
+
+-- Exercice 6 
+accept v_chb_id  prompt 'Please enter the CHB_ID ';
+
+accept v_agt_id prompt 'Please enter the new agent name : ';
+
+DECLARE
+    chb_code CHAMBRE.CHB_ID%TYPE;
+    agt_code AGENT_ENTRETIEN.AGT_ID%TYPE;
+    agt_name AGENT_ENTRETIEN.AGT_NOM%TYPE;
+  
+Begin
+    
+    chb_code := '&v_chb_id';
+    agt_code := '&v_agt_id';
+    
+    SELECT agt_nom
+    INTO agt_name
+    FROM CHAMBRE c
+    WHERE c.CHB_ID = chb_cod;
+EXCEPTION
+    WHEN NO_DATA_FOUND
+    THEN dbms_output.put_line ( 'La chambre ' || chb_code || ' n''existe pas' );    
+    
+    UPDATE CHAMBRE
+    SET AGT_ID = date_dpt
+    WHERE AGT_ID = agt_cod;
+    dbms_output.put_line('Modification effectuée : L''agent' || agt_code || ' est affecté à la chambre ' || chb_code);
+
+    WHEN OTHERS 
+    THEN raise_application_error(-20020,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
+end;
+/
