@@ -157,7 +157,7 @@ DECLARE
     
     --Prise en charge de l'erreur due à la contrainte verif_agt_dpt
     e_verif_agt_dpt exception;
-    pragma exception_init(e_verif_agt_dpt, -6502);
+    pragma exception_init(e_verif_agt_dpt, -02290);
   
 Begin
     
@@ -201,35 +201,216 @@ ALTER TABLE AGENT_ENTRETIEN ADD CONSTRAINT verif_agt_dpt CHECK(AGT_DPT > AGT_EMB
 
 
 
--- Exercice 6 
+-- Exercice 6  Gestion des EXCEPTIONS, erreurs utilisateur, prédéfinies et non prédéfinies ORACLE
+
+
+--a) bloc  PLSQL  qui,  modifie (remplace) l’agent associé à une chambre dans la table CHAMBRE
+
 accept v_chb_id  prompt 'Please enter the CHB_ID ';
 
-accept v_agt_id prompt 'Please enter the new agent name : ';
+accept v_agt_id prompt 'Please enter the new agent code : ';
 
 DECLARE
     chb_code CHAMBRE.CHB_ID%TYPE;
     agt_code AGENT_ENTRETIEN.AGT_ID%TYPE;
     agt_name AGENT_ENTRETIEN.AGT_NOM%TYPE;
   
+    --Prise en charge de l'erreur due à la contrainte FK_CHAMBRE_AGT_ID
+    E_FK_CHAMBRE_AGT_ID exception;
+    pragma exception_init(E_FK_CHAMBRE_AGT_ID, -02291);
 Begin
     
-    chb_code := '&v_chb_id';
+    chb_code := &v_chb_id;
     agt_code := '&v_agt_id';
     
-    SELECT agt_nom
-    INTO agt_name
-    FROM CHAMBRE c
-    WHERE c.CHB_ID = chb_cod;
+    UPDATE CHAMBRE
+    SET AGT_ID = agt_code
+    WHERE CHB_ID = chb_code;
+    IF (SQL%ROWCOUNT > 0)
+        THEN dbms_output.put_line('Modification effectuée : L''agent ' || agt_code || ' est affecté à la chambre ' || chb_code);
+    ELSE dbms_output.put_line ( 'La chambre ' || chb_code || ' n''existe pas' );
+    END IF;
 EXCEPTION
-    WHEN NO_DATA_FOUND
-    THEN dbms_output.put_line ( 'La chambre ' || chb_code || ' n''existe pas' );    
+    WHEN E_FK_CHAMBRE_AGT_ID
+        THEN dbms_output.put_line ( 'L’agent ' || agt_code || ' n''existe pas' );
+    WHEN OTHERS 
+        THEN raise_application_error(-20020,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
+end;
+/
+
+--Test
+--CHB_ID = 30 et AGT_ID = 'A08' 
+--Résultat modif effectuée
+--CHB_ID = 35 et AGT_ID = 'A03' 
+--Résultat La chambre 35 n’existe pas
+
+
+--b)
+--Test
+--CHB_ID = 30 & AGT_ID = 'A08' : Erreur violation de la contrainte étrangère FK_CHAMBRE_AGT_ID clé parente introuvable
+--Car l'on veut insérer un agent dans la table chambre alors qu'il n'existe pas dansla table agent_entretien
+
+--modifiaction : confère lignes 218-220
+
+
+--c)
+accept v_agt_id prompt 'Please enter the agent code : ';
+
+accept v_chb_id  prompt 'Please enter the CHB_ID ';
+
+DECLARE
+    chb_code CHAMBRE.CHB_ID%TYPE;
+    agt_code AGENT_ENTRETIEN.AGT_ID%TYPE;
+    agt_name AGENT_ENTRETIEN.AGT_NOM%TYPE;
+    nb_chambres_agt INTEGER;
+  
+    --Prise en charge de l'erreur due à la contrainte FK_CHAMBRE_AGT_ID
+    E_FK_CHAMBRE_AGT_ID exception;
+    pragma exception_init(E_FK_CHAMBRE_AGT_ID, -02291);
+    
+    --Vérification du nombre de chambres prises en charge par l'agent
+    E_NB_CHAMBRE_AGT exception;
+    
+Begin
+    
+    chb_code := &v_chb_id;
+    agt_code := '&v_agt_id';
+    
+    --Récupération du nombre de chambres de l'agent
+    SELECT COUNT(CHB_ID)
+    INTO nb_chambres_agt
+    FROM CHAMBRE
+    WHERE AGT_ID = agt_code;
+    
+    dbms_output.put_line ( 'nb chambres ' || nb_chambres_agt);
+    
+    IF (nb_chambres_agt >= 12)
+        THEN RAISE E_NB_CHAMBRE_AGT;
+    END IF;
     
     UPDATE CHAMBRE
-    SET AGT_ID = date_dpt
-    WHERE AGT_ID = agt_cod;
-    dbms_output.put_line('Modification effectuée : L''agent' || agt_code || ' est affecté à la chambre ' || chb_code);
-
+    SET AGT_ID = agt_code
+    WHERE CHB_ID = chb_code;
+    
+    IF (SQL%ROWCOUNT > 0)
+        THEN dbms_output.put_line('Modification effectuée : L''agent ' || agt_code || ' est affecté à la chambre ' || chb_code);
+    ELSE dbms_output.put_line ( 'La chambre ' || chb_code || ' n''existe pas' );
+    END IF;
+EXCEPTION
+    WHEN E_FK_CHAMBRE_AGT_ID
+        THEN dbms_output.put_line ( 'L’agent ' || agt_code || ' n''existe pas' );
+    WHEN E_NB_CHAMBRE_AGT
+       THEN dbms_output.put_line('Trop de chambres pour l’agent ' || agt_code || '. Modification annulée.') ;
     WHEN OTHERS 
-    THEN raise_application_error(-20020,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
+        THEN raise_application_error(-20020,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
 end;
+/
+
+--Test
+--CHB_ID = 30 & AGT_ID = 'A02' : 
+
+    SELECT COUNT(CHB_ID)
+    FROM CHAMBRE
+    WHERE AGT_ID = 'A08';
+
+
+
+
+
+
+
+--c) Gestion des érreurs avec imbrication de deux blocs
+
+
+accept v_agt_id prompt 'Please enter the agent code : ';
+
+accept v_chb_id  prompt 'Please enter the CHB_ID ';
+
+DECLARE
+    chb_code CHAMBRE.CHB_ID%TYPE;
+    agt_code AGENT_ENTRETIEN.AGT_ID%TYPE;
+    agt_name AGENT_ENTRETIEN.AGT_NOM%TYPE;
+    nb_chambres_agt INTEGER;
+    x_1 CHAMBRE.CHB_ID%TYPE;
+    x_2 AGENT_ENTRETIEN.AGT_ID%TYPE;
+  
+    --Vérification du nombre de chambres prises en charge par l'agent
+    E_NB_CHAMBRE_AGT exception;
+    
+Begin
+    
+    chb_code := &v_chb_id;
+    agt_code := '&v_agt_id';
+    
+    -- Vérification existance de la chambre
+    BEGIN
+        SELECT CHB_ID  INTO x_1
+        FROM CHAMBRE
+        WHERE CHB_ID = &v_chb_id;
+        EXCEPTION WHEN NO_DATA_FOUND
+        THEN dbms_output.put_line ( 'La chambre ' || chb_code || ' n''existe pas' ) ;
+    END;
+    
+    -- Vérification existance de l'agent
+    BEGIN
+        SELECT AGT_ID  INTO x_2
+        FROM AGENT_ENTRETIEN
+        WHERE AGT_ID = '&v_agt_id';
+        EXCEPTION WHEN NO_DATA_FOUND
+        THEN dbms_output.put_line ( 'L’agent ' || agt_code || ' n''existe pas' );
+    END;
+    
+    --Récupération du nombre de chambres de l'agent
+    SELECT COUNT(CHB_ID)
+    INTO nb_chambres_agt
+    FROM CHAMBRE
+    WHERE AGT_ID = agt_code;
+    
+    dbms_output.put_line ( 'nb chambres ' || nb_chambres_agt);
+    
+    IF (nb_chambres_agt >= 12)
+        THEN RAISE E_NB_CHAMBRE_AGT;
+    END IF;
+    
+    UPDATE CHAMBRE
+    SET AGT_ID = agt_code
+    WHERE CHB_ID = chb_code;
+    dbms_output.put_line('Modification effectuée : L''agent ' || agt_code || ' est affecté à la chambre ' || chb_code);
+    
+EXCEPTION
+    WHEN E_NB_CHAMBRE_AGT
+        THEN dbms_output.put_line('Trop de chambres pour l’agent ' || agt_code || '. Modification annulée.') ;
+    WHEN OTHERS 
+        THEN raise_application_error(-20020,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
+end;
+/
+
+--Test
+DECLARE 
+ x_1 CHAMBRE.CHB_ID%TYPE;
+BEGIN
+        SELECT CHB_ID  INTO x_1
+        FROM CHAMBRE
+        WHERE CHB_ID = 30;
+        EXCEPTION WHEN NO_DATA_FOUND
+        THEN dbms_output.put_line ( 'La chambre ' || 30 || ' n''existe pas' ) ;
+END;
+/
+
+--Test
+accept v_agt_id prompt 'Please enter the agent code : ';
+
+DECLARE 
+    x_2 AGENT_ENTRETIEN.AGT_ID%TYPE;
+    agt_code AGENT_ENTRETIEN.AGT_ID%TYPE;
+BEGIN
+    agt_code := '&v_agt_id';
+    BEGIN
+        SELECT AGT_ID  INTO x_2
+        FROM AGENT_ENTRETIEN
+        WHERE AGT_ID = agt_code;
+        EXCEPTION WHEN NO_DATA_FOUND
+        THEN dbms_output.put_line ( 'L’agent ' || agt_code || ' n''existe pas' );
+    END;
+END;
 /
