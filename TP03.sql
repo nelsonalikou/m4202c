@@ -79,24 +79,22 @@ declare
    prenom CLIENT.CLI_PRENOM%TYPE;
    ville ADRESSE.ADR_VILLE%TYPE;
    name CLIENT.CLI_NOM%TYPE;
-   nb INTEGER;
+
 begin
     name := '&cli_name';
-    SELECT c.CLI_ID, UPPER(c.CLI_NOM), c.CLI_PRENOM,a.ADR_VILLE, COUNT(c.CLI_ID)
-    INTO id, nom, prenom, ville, nb   
+    
+    SELECT c.CLI_ID, UPPER(c.CLI_NOM), c.CLI_PRENOM,a.ADR_VILLE
+    INTO id, nom, prenom, ville
     FROM CLIENT c, ADRESSE a
     WHERE c.CLI_ID = a.CLI_ID
-    AND UPPER(CLI_NOM) = UPPER('&cli_name') 
-    group by c.CLI_ID, UPPER(c.CLI_NOM), c.CLI_PRENOM, a.ADR_VILLE;
-    IF(SQL%ROWCOUNT > 1)
-    THEN dbms_output.put_line ( 'Attention ! Plusieurs clients nommés ' || name);
-    END IF;
-    dbms_output.put_line('résultats pour '|| nom);
+    AND UPPER(CLI_NOM) = UPPER('&cli_name');
     
     dbms_output.put_line('le client '|| id || ' ' || prenom || REPLACE(nom,' ','') || ' habite à ' || ville);
 EXCEPTION
     WHEN NO_DATA_FOUND
-    THEN dbms_output.put_line ( 'Désolé, pas de client nommé ' || name);
+        THEN dbms_output.put_line ( 'Désolé, pas de client nommé ' || name);
+    WHEN TOO_MANY_ROWS
+        THEN dbms_output.put_line ( 'Attention ! Plusieurs clients nommés ' || name);
 end;
 /
 
@@ -318,9 +316,9 @@ end;
 
 
 
+SET VERIFY OFF;
 
---c) Gestion des érreurs avec imbrication de deux blocs
-
+--d) Gestion des érreurs avec imbrication de deux blocs
 
 accept v_agt_id prompt 'Please enter the agent code : ';
 
@@ -345,72 +343,52 @@ Begin
     -- Vérification existance de la chambre
     BEGIN
         SELECT CHB_ID  INTO x_1
-        FROM CHAMBRE
-        WHERE CHB_ID = &v_chb_id;
-        EXCEPTION WHEN NO_DATA_FOUND
-        THEN dbms_output.put_line ( 'La chambre ' || chb_code || ' n''existe pas' ) ;
+            FROM CHAMBRE
+            WHERE CHB_ID = &v_chb_id;
+        BEGIN
+            --Récupération du nombre de chambres de l'agent
+            SELECT AGT_ID
+                INTO x_2               
+                FROM AGENT_ENTRETIEN
+                WHERE AGT_ID = agt_code;
+            
+            BEGIN
+                SELECT COUNT(CHB_ID)
+                    INTO nb_chambres_agt
+                    FROM CHAMBRE
+                    WHERE AGT_ID = agt_code;
+                    
+                    dbms_output.put_line ( 'nb chambres ' || nb_chambres_agt);
+                    
+                IF (nb_chambres_agt >= 12)
+                    THEN RAISE E_NB_CHAMBRE_AGT;
+                END IF;
+                    
+                UPDATE CHAMBRE
+                    SET AGT_ID = agt_code
+                    WHERE CHB_ID = chb_code;
+                    dbms_output.put_line('Modification effectuée : L''agent ' || agt_code || ' est affecté à la chambre ' || chb_code);
+                    
+                EXCEPTION
+                    WHEN E_NB_CHAMBRE_AGT
+                        THEN dbms_output.put_line('Trop de chambres pour l’agent ' || agt_code || '. Modification annulée.') ;
+                    WHEN OTHERS 
+                        THEN raise_application_error(-20020,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
+                        --THEN dbms_output.put_line( 'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM ) ;
+    
+            END;
+            EXCEPTION
+                WHEN NO_DATA_FOUND
+                    THEN dbms_output.put_line ( 'L’agent ' || agt_code || ' n''existe pas' );
+                    
+        END;
+        -- Exception lancee par le premier select lorsque la chambre est inexistante
+        EXCEPTION 
+            WHEN NO_DATA_FOUND
+                THEN dbms_output.put_line ( 'La chambre ' || chb_code || ' n''existe pas' ) ;
+           
     END;
     
-    -- Vérification existance de l'agent
-    BEGIN
-        SELECT AGT_ID  INTO x_2
-        FROM AGENT_ENTRETIEN
-        WHERE AGT_ID = '&v_agt_id';
-        EXCEPTION WHEN NO_DATA_FOUND
-        THEN dbms_output.put_line ( 'L’agent ' || agt_code || ' n''existe pas' );
-    END;
     
-    --Récupération du nombre de chambres de l'agent
-    SELECT COUNT(CHB_ID)
-    INTO nb_chambres_agt
-    FROM CHAMBRE
-    WHERE AGT_ID = agt_code;
-    
-    dbms_output.put_line ( 'nb chambres ' || nb_chambres_agt);
-    
-    IF (nb_chambres_agt >= 12)
-        THEN RAISE E_NB_CHAMBRE_AGT;
-    END IF;
-    
-    UPDATE CHAMBRE
-    SET AGT_ID = agt_code
-    WHERE CHB_ID = chb_code;
-    dbms_output.put_line('Modification effectuée : L''agent ' || agt_code || ' est affecté à la chambre ' || chb_code);
-    
-EXCEPTION
-    WHEN E_NB_CHAMBRE_AGT
-        THEN dbms_output.put_line('Trop de chambres pour l’agent ' || agt_code || '. Modification annulée.') ;
-    WHEN OTHERS 
-        THEN raise_application_error(-20020,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
 end;
-/
-
---Test
-DECLARE 
- x_1 CHAMBRE.CHB_ID%TYPE;
-BEGIN
-        SELECT CHB_ID  INTO x_1
-        FROM CHAMBRE
-        WHERE CHB_ID = 30;
-        EXCEPTION WHEN NO_DATA_FOUND
-        THEN dbms_output.put_line ( 'La chambre ' || 30 || ' n''existe pas' ) ;
-END;
-/
-
---Test
-accept v_agt_id prompt 'Please enter the agent code : ';
-
-DECLARE 
-    x_2 AGENT_ENTRETIEN.AGT_ID%TYPE;
-    agt_code AGENT_ENTRETIEN.AGT_ID%TYPE;
-BEGIN
-    agt_code := '&v_agt_id';
-    BEGIN
-        SELECT AGT_ID  INTO x_2
-        FROM AGENT_ENTRETIEN
-        WHERE AGT_ID = agt_code;
-        EXCEPTION WHEN NO_DATA_FOUND
-        THEN dbms_output.put_line ( 'L’agent ' || agt_code || ' n''existe pas' );
-    END;
-END;
 /
